@@ -1,0 +1,14 @@
+# Local credentials and secrets
+.env
+.env.*
+!.env.example
+.aws/
+.streamlit/secrets.toml
+
+# Local Python environment and generated files
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ipynb_checkpoints/
+benchmark-results.json

@@ -1,0 +1,26 @@
+[
+  {
+    "id": "orders",
+    "name": "Orders API",
+    "method": "GET",
+    "path": "/orders/{order_id}",
+    "description": "Returns one order for an authenticated demo user. Check whether changing an object identifier exposes another user's order.",
+    "available_probes": ["idor_probe"]
+  },
+  {
+    "id": "profile",
+    "name": "Profile API",
+    "method": "GET",
+    "path": "/profile/{user_id}",
+    "description": "Returns a demo profile. Check whether the response contains fields beyond the documented public profile schema.",
+    "available_probes": ["exposure_probe"]
+  },
+  {
+    "id": "health",
+    "name": "Health check",
+    "method": "GET",
+    "path": "/health",
+    "description": "A status endpoint has no object authorization or profile fields to inspect.",
+    "available_probes": []
+  }
+]
