@@ -77,6 +77,23 @@ The script reports the returned model, choice, confidence, and latency; it does 
 
 If using the local server, leave `STRANDS_DECIDER_ENDPOINT` empty and follow Terminal 2 below.
 
+## Deploy a public Streamlit demo
+
+The Streamlit page starts the bundled synthetic API on `127.0.0.1:8088` when the page starts, so the fixed probes work in the same app container without exposing a separate sandbox API service. The app reads the hosted Decider endpoint and key from Streamlit Community Cloud secrets as well as from a local `.env` file.
+
+1. Push the project to GitHub, then sign in to [Streamlit Community Cloud](https://share.streamlit.io/) with the GitHub account that owns this repository.
+2. Choose **Create app** and set repository to `MD123KHAN/SentinelAPI`, branch to `main`, and app file to `app.py`.
+3. In **Advanced settings → Secrets**, add the hosted Decider values below using your current replacement key. Never commit the key to GitHub. Anyone who can use a public demo may be able to spend its hosted Decider quota, so use a demo key with an appropriate limit and revoke it after the event.
+
+```toml
+STRANDS_DECIDER_ENDPOINT = "https://da25tnxy06gjk.cloudfront.net/v1/decide"
+STRANDS_DECIDER_API_KEY = "PASTE_YOUR_ROTATED_KEY_HERE"
+STRANDS_DECIDER_API_KEY_HEADER = "Authorization"
+STRANDS_DECIDER_API_KEY_PREFIX = "Bearer"
+```
+
+4. Click **Deploy**. Community Cloud will give the app a public `*.streamlit.app` URL. The optional Bedrock explanation still requires valid AWS credentials and model invocation permission; the deterministic synthetic finding works independently of that explanation.
+
 ## Start the three local services
 
 Open three VS Code terminals in this folder. Use the same `.venv` Python path for each.

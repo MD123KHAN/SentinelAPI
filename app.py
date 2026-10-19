@@ -12,6 +12,55 @@ AUTO_RUN_CONFIDENCE = 0.70
 REVIEW_CONFIDENCE = 0.50
 
 st.set_page_config(page_title="SentinelAPI | Safe Security Lab", page_icon="🛡️", layout="wide")
+
+
+@st.cache_resource
+def ensure_local_sandbox():
+    """Start the bundled synthetic API inside this app if it is not already running."""
+    import threading
+    import time
+
+    import requests
+    import uvicorn
+
+    health_url = "http://127.0.0.1:8088/health"
+    try:
+        response = requests.get(health_url, timeout=0.4)
+        response.raise_for_status()
+        return None
+    except requests.RequestException:
+        pass
+
+    server = uvicorn.Server(
+        uvicorn.Config(
+            "sandbox_api:app",
+            host="127.0.0.1",
+            port=8088,
+            log_level="warning",
+            access_log=False,
+        )
+    )
+    thread = threading.Thread(target=server.run, name="sentinelapi-sandbox", daemon=True)
+    thread.start()
+
+    for _ in range(40):
+        if not thread.is_alive():
+            break
+        try:
+            response = requests.get(health_url, timeout=0.4)
+            response.raise_for_status()
+            return server
+        except requests.RequestException:
+            time.sleep(0.25)
+    raise RuntimeError("The synthetic localhost sandbox did not start on 127.0.0.1:8088.")
+
+
+try:
+    ensure_local_sandbox()
+except Exception as exc:
+    st.error(f"The fixed synthetic sandbox could not start: {exc}")
+    st.stop()
+
 st.markdown("""
 <style>
 .block-container {max-width: 1180px; padding-top: 2rem;}

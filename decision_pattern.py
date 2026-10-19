@@ -33,9 +33,27 @@ SANDBOX_OPERATIONS = [
 ]
 
 
+def _setting(name: str, default: str = "") -> str:
+    """Read local environment values or Streamlit Community Cloud secrets."""
+    value = os.getenv(name)
+    if value:
+        return value.strip()
+    try:
+        import streamlit as st
+
+        secret = st.secrets.get(name, default)
+        return str(secret).strip()
+    except Exception:
+        return default
+
+
 def _decider_request_config() -> tuple[str, dict[str, str]]:
     """Build the endpoint and secret header without exposing credentials."""
-    endpoint = DECIDER_ENDPOINT or f"{DECIDER_URL}/v1/systemone"
+    decider_url = _setting("STRANDS_DECIDER_URL", DECIDER_URL).rstrip("/")
+    endpoint = _setting("STRANDS_DECIDER_ENDPOINT", DECIDER_ENDPOINT) or f"{decider_url}/v1/systemone"
+    api_key = _setting("STRANDS_DECIDER_API_KEY", DECIDER_API_KEY) or _setting("DECIDER_API_KEY", "")
+    api_key_header = _setting("STRANDS_DECIDER_API_KEY_HEADER", DECIDER_API_KEY_HEADER)
+    api_key_prefix = _setting("STRANDS_DECIDER_API_KEY_PREFIX", DECIDER_API_KEY_PREFIX)
     if "<" in endpoint or ">" in endpoint:
         raise ValueError("The endpoint still contains a sample placeholder. Replace it with the real HTTPS endpoint from your hackathon setup.")
     parsed = urlparse(endpoint)
@@ -44,20 +62,20 @@ def _decider_request_config() -> tuple[str, dict[str, str]]:
     route = parsed.path.rstrip("/")
     if route not in {"/v1/systemone", "/v1/decide"}:
         raise ValueError("Use /v1/systemone for a local server or /v1/decide for the hosted UGM Decider.")
-    if route == "/v1/decide" and not DECIDER_API_KEY:
-        raise ValueError("The hosted /v1/decide endpoint requires STRANDS_DECIDER_API_KEY in your local .env.")
+    if route == "/v1/decide" and not api_key:
+        raise ValueError("The hosted /v1/decide endpoint requires STRANDS_DECIDER_API_KEY in local .env or deployment secrets.")
     is_loopback = parsed.hostname.lower() in {"127.0.0.1", "localhost", "::1"}
     if parsed.scheme != "https" and not is_loopback:
         raise ValueError("Remote Decider endpoints must use HTTPS so the API key stays encrypted in transit.")
-    if not DECIDER_API_KEY_HEADER or any(c in DECIDER_API_KEY_HEADER for c in "\r\n:"):
+    if not api_key_header or any(c in api_key_header for c in "\r\n:"):
         raise ValueError("STRANDS_DECIDER_API_KEY_HEADER must be a valid HTTP header name.")
     headers = {"Content-Type": "application/json"}
     # A hosted key is only sent when an explicit hosted endpoint is configured.
-    if DECIDER_API_KEY and DECIDER_ENDPOINT:
-        value = f"{DECIDER_API_KEY_PREFIX} {DECIDER_API_KEY}" if DECIDER_API_KEY_PREFIX else DECIDER_API_KEY
+    if api_key and _setting("STRANDS_DECIDER_ENDPOINT", DECIDER_ENDPOINT):
+        value = f"{api_key_prefix} {api_key}" if api_key_prefix else api_key
         if "\r" in value or "\n" in value:
             raise ValueError("STRANDS_DECIDER_API_KEY contains invalid header characters.")
-        headers[DECIDER_API_KEY_HEADER] = value
+        headers[api_key_header] = value
     return endpoint, headers
 
 
@@ -106,7 +124,7 @@ def choose_probe(user_request: str) -> Decision:
     }
     endpoint, headers = _decider_request_config()
     if urlparse(endpoint).path.rstrip("/") == "/v1/systemone":
-        payload["model"] = DECIDER_MODEL
+        payload["model"] = _setting("STRANDS_DECIDER_MODEL", DECIDER_MODEL)
     started = time.perf_counter()
     response = requests.post(endpoint, headers=headers, json=payload, timeout=120, allow_redirects=False)
     latency_ms = (time.perf_counter() - started) * 1000
