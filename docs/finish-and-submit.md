@@ -10,4 +10,4 @@ The contest screenshot states: public OSI-licensed repository with one labeled r
 - [ ] Add `#strands-decider-2b` and `#tool-selection` to the entry.
 - [ ] Verify the event page's eligibility and submission form before the deadline.
 
-The screenshot says submissions close **October 23 at 11:59 p.m. Pacific Time** and winners are announced November 9. Confirm the live page in case details change.
+
